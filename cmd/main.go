@@ -141,32 +141,39 @@ func getRoof(hash string) pointerPair {
 	if len(lines) == 0 || lines[0] == "" {
 		return pointerPair{}
 	}
-	r := pointerPair{}
+	results := []pointerPair{}
 	for _, l := range lines {
 		group := strings.Split(l, ":")
+		if len(group) < 2 {
+			continue
+		}
 		h := group[0]
 		mn := group[1]
 		if h == hash {
-			fmt.Println(group)
+			r := pointerPair{}
 			r.SHA = h
 			intMN, intErr := strconv.Atoi(mn)
 			Err(intErr)
 			r.magicNumber = intMN
 			r.path = ".zil/objects/" + h[:2] + "/"
-			break
+			results = append(results, r)
 		}
 	}
-	return r
+	return results[len(results)-1]
 }
+
 func setRoof(name string, magicNumber int) {
 	os.Chmod(".zil/ROOF", 0755)
 	defer os.Chmod(".zil/ROOF", 0060)
 	data := []byte{byte(magicNumber), 00}
 	data = append(data, []byte(name)...)
 	h := makeHash(data)
-	err := os.WriteFile(".zil/ROOF", []byte(h+":"+strconv.Itoa(magicNumber)+"\n"), os.ModeAppend)
+	bytes := []byte(h + ":" + strconv.Itoa(magicNumber) + "\n")
+	f, err := os.OpenFile(".zil/ROOF", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+	f.Write(bytes)
 	Err(err)
 }
+
 func writeStage(dir string, magicNumber int, isGen bool) {
 	fs.WalkDir(os.DirFS(dir), dir, func(path string, info fs.DirEntry, err error) error {
 		Err(err)
